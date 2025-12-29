@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 编程助手（HTML → 本地Python）</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+            margin: 0;
+            background: #0b1020;
+            color: #e7e7e7
+        }
+
+        .wrap {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 18px
+        }
+
+        .card {
+            background: #121a33;
+            border: 1px solid #1f2a4d;
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, .25)
+        }
+
+        h1 {
+            font-size: 20px;
+            margin: 0 0 10px
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap
+        }
+
+        input,
+        textarea,
+        button {
+            border-radius: 12px;
+            border: 1px solid #27335c;
+            background: #0e1630;
+            color: #e7e7e7;
+            padding: 12px 14px;
+            font-size: 14px;
+            outline: none
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 110px;
+            resize: vertical;
+            line-height: 1.5
+        }
+
+        button {
+            cursor: pointer;
+            background: #2b5cff;
+            border: none;
+            font-weight: 600
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed
+        }
+
+        .log {
+            margin-top: 14px;
+            padding: 12px;
+            border-radius: 12px;
+            background: #0a1127;
+            border: 1px solid #22305b;
+            min-height: 220px
+        }
+
+        .msg {
+            padding: 10px 12px;
+            border-radius: 12px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            word-break: break-word
+        }
+
+        .me {
+            background: #1b2a55;
+            border: 1px solid #2a3a70
+        }
+
+        .ai {
+            background: #111b3b;
+            border: 1px solid #22305b
+        }
+
+        .meta {
+            opacity: .8;
+            font-size: 12px;
+            margin-bottom: 6px
+        }
+
+        .code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas;
+            font-size: 13px
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="card">
+            <h1>🧠 AI 编程助手（HTML → 本地 Python）</h1>
+
+            <div class="row">
+                <input id="server" value="http://127.0.0.1:8765" style="flex:1;min-width:260px" />
+                <input id="sessionId" value="default" style="min-width:160px" />
+                <label style="display:flex;align-items:center;gap:6px;">
+                    <input type="checkbox" id="pureMode" />
+                    <span>纯代码模式</span>
+                </label>
+            </div>
+
+            <div style="margin-top:10px;">
+                <textarea id="q" placeholder="请输入问题...（Ctrl/⌘ + Enter 发送）"></textarea>
+            </div>
+
+            <div class="row" style="margin-top:10px;">
+                <button id="send">发送</button>
+                <button id="clear" style="background:#34406d;">清空对话</button>
+            </div>
+
+            <div class="log" id="log"></div>
+        </div>
+    </div>
+
+    <script>
+        const log = document.getElementById("log");
+        const btn = document.getElementById("send");
+        const q = document.getElementById("q");
+        const server = document.getElementById("server");
+        const sessionId = document.getElementById("sessionId");
+        const pureMode = document.getElementById("pureMode");
+
+        function esc(s) {
+            return (s || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+        }
+
+        function add(role, text) {
+            const div = document.createElement("div");
+            div.className = "msg " + (role === "me" ? "me" : "ai");
+            div.innerHTML = `<div class="meta">${role === "me" ? "你" : "AI"}</div><div class="${role === "ai" ? "code" : ""}">${esc(text)}</div>`;
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        async function send() {
+            const text = q.value.trim();
+            if (!text) return;
+
+            add("me", text);
+            q.value = "";
+            btn.disabled = true;
+
+            try {
+                const url = server.value.replace(/\/+$/, "") + "/api/chat";
+                const res = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        question: text,
+                        session_id: sessionId.value.trim() || "default",
+                        pure_mode: !!pureMode.checked
+                    })
+                });
+
+                const data = await res.json();
+                if (data.ok) add("ai", data.answer);
+                else add("ai", "❌ " + (data.error || "unknown"));
+            } catch (e) {
+                add("ai", "❌ 无法连接本地服务：" + e);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        btn.onclick = send;
+        q.addEventListener("keydown", (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") send();
+        });
+
+        document.getElementById("clear").onclick = () => log.innerHTML = "";
+    </script>
+</body>
+
+</html>
