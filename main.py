@@ -7,7 +7,7 @@ from langchain_core.chat_history import InMemoryChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
 # ====== 直接写死 Key（不使用环境变量） ======
-DEEPSEEK_API_KEY = "sk-2e6c1cdb0303477483250a88582492ee"
+DEEPSEEK_API_KEY = ""
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 MODEL_NAME = "deepseek-chat"
 # ============================================
